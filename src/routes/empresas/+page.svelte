@@ -1,6 +1,7 @@
 <script>
 	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
 	import { empresasStore } from '$lib/data/mockData.js';
+	import { apiRequest } from '../../lib/api.js';
 
 	let busqueda = $state('');
 	let filtroSector = $state('todos');
@@ -29,13 +30,19 @@
 		})
 	);
 
-	function registrarEmpresa(event) {
+	async function registrarEmpresa(event) {
 		event.preventDefault();
-		const id = $empresasStore.length ? Math.max(...$empresasStore.map((e) => e.id)) + 1 : 1;
-		empresasStore.update((lista) => [
-			{ id, ...nuevaEmpresa },
-			...lista
-		]);
+		try {
+			const { contacto, razon_social, ...payload } = nuevaEmpresa;
+			const created = await apiRequest('/empresas/', {
+				method: 'POST',
+				body: JSON.stringify({ ...payload, nombre: razon_social })
+			});
+			empresasStore.update((lista) => [{ id: created.id, empresa_id: created.id, razon_social, contacto, ...payload }, ...lista]);
+		} catch (error) {
+			mensajeAlerta = `Error al registrar empresa: ${error.message}`;
+			return;
+		}
 		mensajeAlerta = `¡Empresa "${nuevaEmpresa.razon_social}" registrada satisfactoriamente!`;
 		nuevaEmpresa = {
 			nit: '',
@@ -50,10 +57,15 @@
 		mostrarFormulario = false;
 	}
 
-	function eliminarEmpresa(id, nombre) {
+	async function eliminarEmpresa(id, nombre) {
 		if (confirm(`¿Desea dar de baja a la empresa "${nombre}"?`)) {
-			empresasStore.update((lista) => lista.filter((e) => e.id !== id));
-			mensajeAlerta = `Empresa "${nombre}" eliminada correctamente.`;
+			try {
+				await apiRequest(`/empresas/${id}`, { method: 'DELETE' });
+				empresasStore.update((lista) => lista.filter((e) => e.id !== id));
+				mensajeAlerta = `Empresa "${nombre}" eliminada correctamente.`;
+			} catch (error) {
+				mensajeAlerta = `Error al eliminar empresa: ${error.message}`;
+			}
 		}
 	}
 </script>

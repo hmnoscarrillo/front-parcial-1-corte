@@ -1,6 +1,7 @@
 <script>
 	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
 	import { programasStore } from '$lib/data/mockData.js';
+	import { apiRequest } from '../../lib/api.js';
 
 	// Estado local para búsqueda y formulario
 	let busqueda = $state('');
@@ -30,13 +31,19 @@
 		})
 	);
 
-	function guardarPrograma(event) {
+	async function guardarPrograma(event) {
 		event.preventDefault();
-		const id = $programasStore.length ? Math.max(...$programasStore.map((p) => p.id)) + 1 : 1;
-		programasStore.update((lista) => [
-			{ id, ...nuevoPrograma },
-			...lista
-		]);
+		try {
+			const { codigo, creditos, ...payload } = nuevoPrograma;
+			const created = await apiRequest('/programas/', {
+				method: 'POST',
+				body: JSON.stringify({ ...payload, duracion_semestres: Math.max(1, Math.ceil(Number(creditos) / 16)) })
+			});
+			programasStore.update((lista) => [{ id: created.id, programa_id: created.id, codigo, ...payload, creditos }, ...lista]);
+		} catch (error) {
+			mensajeAlerta = `Error al guardar programa: ${error.message}`;
+			return;
+		}
 
 		mensajeAlerta = `¡Programa "${nuevoPrograma.nombre}" registrado exitosamente en el sistema!`;
 		// Reset form
@@ -51,10 +58,15 @@
 		mostrarFormulario = false;
 	}
 
-	function eliminarPrograma(id, nombre) {
+	async function eliminarPrograma(id, nombre) {
 		if (confirm(`¿Está seguro de eliminar el programa "${nombre}"?`)) {
-			programasStore.update((lista) => lista.filter((p) => p.id !== id));
-			mensajeAlerta = `Programa "${nombre}" eliminado correctamente.`;
+			try {
+				await apiRequest(`/programas/${id}`, { method: 'DELETE' });
+				programasStore.update((lista) => lista.filter((p) => p.id !== id));
+				mensajeAlerta = `Programa "${nombre}" eliminado correctamente.`;
+			} catch (error) {
+				mensajeAlerta = `Error al eliminar programa: ${error.message}`;
+			}
 		}
 	}
 </script>

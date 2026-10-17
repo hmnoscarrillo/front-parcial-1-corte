@@ -1,6 +1,7 @@
 <script>
 	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
 	import { estudiantesStore, programasStore } from '$lib/data/mockData.js';
+	import { apiRequest } from '../../lib/api.js';
 
 	let busqueda = $state('');
 	let filtroPrograma = $state('todos');
@@ -33,20 +34,18 @@
 		})
 	);
 
-	function registrarEstudiante(event) {
+	async function registrarEstudiante(event) {
 		event.preventDefault();
 		const prog = $programasStore.find((p) => p.id === Number(nuevoEstudiante.programa_id));
 		const nombrePrograma = prog ? prog.nombre : 'Ingeniería de Sistemas';
-
-		const id = $estudiantesStore.length ? Math.max(...$estudiantesStore.map((e) => e.id)) + 1 : 1;
-		estudiantesStore.update((lista) => [
-			{
-				id,
-				...nuevoEstudiante,
-				programa: nombrePrograma
-			},
-			...lista
-		]);
+		try {
+			const { tipo_doc, promedio, ...payload } = nuevoEstudiante;
+			const created = await apiRequest('/estudiantes/', { method: 'POST', body: JSON.stringify(payload) });
+			estudiantesStore.update((lista) => [{ id: created.id, estudiante_id: created.id, ...payload, tipo_doc, promedio, programa: nombrePrograma }, ...lista]);
+		} catch (error) {
+			mensajeAlerta = `Error al registrar estudiante: ${error.message}`;
+			return;
+		}
 
 		mensajeAlerta = `¡Estudiante "${nuevoEstudiante.nombres} ${nuevoEstudiante.apellidos}" registrado exitosamente!`;
 		nuevoEstudiante = {
@@ -64,10 +63,15 @@
 		mostrarFormulario = false;
 	}
 
-	function eliminarEstudiante(id, nombre) {
+	async function eliminarEstudiante(id, nombre) {
 		if (confirm(`¿Está seguro de dar de baja al estudiante "${nombre}"?`)) {
-			estudiantesStore.update((lista) => lista.filter((e) => e.id !== id));
-			mensajeAlerta = `Estudiante "${nombre}" eliminado del directorio.`;
+			try {
+				await apiRequest(`/estudiantes/${id}`, { method: 'DELETE' });
+				estudiantesStore.update((lista) => lista.filter((e) => e.id !== id));
+				mensajeAlerta = `Estudiante "${nombre}" eliminado del directorio.`;
+			} catch (error) {
+				mensajeAlerta = `Error al eliminar estudiante: ${error.message}`;
+			}
 		}
 	}
 </script>

@@ -1,5 +1,28 @@
 services:
   - type: web
+    name: parcial-1-corte-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: CORS_ORIGINS
+        value: https://front-parcial-1-corte.onrender.com
+      - key: DB_HOST
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_PORT
+        sync: false
+  - type: web
     name: front-parcial-1-corte
     repo: https://github.com/hmnoscarrillo/front-parcial-1-corte
     branch: main
@@ -13,3 +36,5 @@ services:
         value: 22
       - key: RENDER
         value: "1"
+      - key: VITE_API_URL
+        value: https://parcial-1-corte-api.onrender.com

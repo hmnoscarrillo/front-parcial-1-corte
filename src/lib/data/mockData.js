@@ -1,4 +1,14 @@
 import { writable } from 'svelte/store';
+import { apiRequest } from './api.js';
+
+async function hydrateFromApi(path, store, mapRow = (row) => row) {
+	try {
+		const rows = await apiRequest(path);
+		if (Array.isArray(rows)) store.set(rows.map(mapRow));
+	} catch (error) {
+		console.error(`No fue posible cargar ${path} desde el backend:`, error);
+	}
+}
 
 // 1. Roles del Sistema RBAC (1 = Máxima Autoridad)
 export const initialRoles = [
@@ -199,6 +209,22 @@ export const practicasStore = writable(initialPracticas);
 export const seguimientosStore = writable(initialSeguimientos);
 export const evaluacionesStore = writable(initialEvaluaciones);
 export const documentosStore = writable(initialDocumentos);
+
+if (typeof window !== 'undefined') {
+	const refresh = async (endpoint, store, map) => {
+		try {
+			const records = await apiRequest(endpoint);
+			if (Array.isArray(records)) store.set(records.map(map));
+		} catch (error) {
+			console.error(`No fue posible cargar ${endpoint} desde el backend:`, error);
+		}
+	};
+	void Promise.all([
+		refresh('/programas/', programasStore, (row) => ({ ...row, id: row.programa_id, codigo: row.codigo ?? '' })),
+		refresh('/empresas/', empresasStore, (row) => ({ ...row, id: row.empresa_id, razon_social: row.nombre, contacto: row.contacto ?? '' })),
+		refresh('/estudiantes/', estudiantesStore, (row) => ({ ...row, id: row.estudiante_id, tipo_doc: row.tipo_doc ?? 'CC', promedio: row.promedio ?? 0 }))
+	]);
+}
 
 // Rol activo actual en la interfaz (permite simular la experiencia como Admin, Coord, Docente o Alumno)
 export const rolActivoStore = writable({
