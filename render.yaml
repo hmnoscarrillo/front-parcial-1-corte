@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: front-parcial-1-corte
+    repo: https://github.com/hmnoscarrillo/front-parcial-1-corte
+    branch: main
+    runtime: node
+    plan: free
+    buildCommand: npm install --ignore-scripts && npm install --ignore-scripts --no-save --package-lock=false @sveltejs/adapter-node@5.5.3 && npm run prepare && npm run build
+    startCommand: node build/index.js
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: RENDER
+        value: "1"
