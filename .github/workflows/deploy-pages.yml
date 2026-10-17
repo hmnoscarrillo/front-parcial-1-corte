@@ -21,8 +21,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npm install -D @sveltejs/adapter-static
+      - run: npm ci --ignore-scripts
+      - run: npm install --no-save --package-lock=false @sveltejs/adapter-static@3.0.10
+      - run: npm run prepare
       - run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
